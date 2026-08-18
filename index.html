@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BUR Parking — Live Spaces</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --asphalt: #17181c;
+    --asphalt-2: #1f2127;
+    --paint: #f5c344;       /* stall-line yellow */
+    --sign: #f2f2ef;        /* signage white */
+    --ok: #5cc474;
+    --low: #e8a13c;
+    --scarce: #e05252;
+    --muted: #8b8e97;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 400px at 50% -10%, #24262d 0%, transparent 60%),
+      var(--asphalt);
+    color: var(--sign);
+    font-family: "Barlow", system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 0 20px 56px;
+  }
+  header {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 40px 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    border-bottom: 4px solid var(--paint);
+  }
+  .p-sign {
+    font-family: "Saira Stencil One", sans-serif;
+    font-size: 44px;
+    line-height: 1;
+    color: var(--asphalt);
+    background: var(--paint);
+    padding: 8px 16px 10px;
+    border-radius: 6px;
+  }
+  h1 { font-size: 22px; font-weight: 700; letter-spacing: .04em; margin: 0; text-transform: uppercase; }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .updated { margin-left: auto; text-align: right; font-size: 13px; color: var(--muted); }
+  .updated .stale { color: var(--low); font-weight: 500; }
+
+  main { max-width: 880px; margin: 0 auto; }
+  section h2 {
+    font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; margin: 36px 0 14px;
+  }
+  .stalls {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0;
+  }
+  /* Each card is a parking stall: yellow line on the left, shared like painted rows */
+  .stall {
+    background: var(--asphalt-2);
+    border-left: 3px solid var(--paint);
+    padding: 18px 18px 22px;
+    position: relative;
+    animation: settle .4s ease both;
+  }
+  .stall:last-child { border-right: 3px solid var(--paint); }
+  .stall .lot {
+    font-family: "Saira Stencil One", sans-serif;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--paint);
+    opacity: .92;
+  }
+  .stall .lot small { font-size: 15px; display: block; font-family: "Barlow"; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-top: 6px; }
+  .stall .count {
+    margin-top: 14px;
+    font-size: 44px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .stall .label { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .ok    { color: var(--ok); }
+  .low   { color: var(--low); }
+  .scarce{ color: var(--scarce); }
+  .err {
+    max-width: 880px; margin: 40px auto; padding: 18px;
+    border: 1px dashed var(--muted); color: var(--muted); font-size: 15px;
+  }
+  footer { max-width: 880px; margin: 48px auto 0; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--paint); }
+  @keyframes settle { from { opacity: 0; transform: translateY(4px); } }
+  @media (prefers-reduced-motion: reduce) { .stall { animation: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="p-sign">P</div>
+  <div>
+    <h1>Hollywood Burbank Airport</h1>
+    <div class="sub">Live parking availability by lot</div>
+  </div>
+  <div class="updated" id="updated"></div>
+</header>
+
+<main id="main"></main>
+
+<footer>
+  Data scraped from the <a href="https://www.hollywoodburbankairport.com/parking/">official BUR parking page</a>
+  every 15 minutes by GitHub Actions. Unofficial — verify before you drive.
+</footer>
+
+<script>
+  const THRESHOLDS = { scarce: 25, low: 75 }; // spaces
+
+  function statusClass(v) {
+    if (typeof v !== "number") return v === "FULL" ? "scarce" : "";
+    if (v < THRESHOLDS.scarce) return "scarce";
+    if (v < THRESHOLDS.low) return "low";
+    return "ok";
+  }
+
+  function stall(name, value) {
+    const isStructure = name.startsWith("Structure");
+    const letter = isStructure ? name.replace("Structure: Level ", "L") : name.replace("Parking Lot ", "");
+    const sub = isStructure ? "Structure" : "Surface lot";
+    const cls = statusClass(value);
+    return `<div class="stall">
+      <div class="lot">${letter}<small>${sub}</small></div>
+      <div class="count ${cls}">${value}</div>
+      <div class="label">spaces available</div>
+    </div>`;
+  }
+
+  async function load() {
+    const main = document.getElementById("main");
+    try {
+      const res = await fetch("data/parking.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+
+      const lots = Object.entries(data.lots);
+      const surface = lots.filter(([n]) => n.startsWith("Parking Lot"));
+      const structure = lots.filter(([n]) => n.startsWith("Structure"));
+
+      main.innerHTML =
+        (surface.length ? `<section><h2>Economy &amp; long-term lots</h2><div class="stalls">${surface.map(([n, v]) => stall(n, v)).join("")}</div></section>` : "") +
+        (structure.length ? `<section><h2>Short-term structure</h2><div class="stalls">${structure.map(([n, v]) => stall(n, v)).join("")}</div></section>` : "");
+
+      const when = new Date(data.updated);
+      const mins = Math.round((Date.now() - when) / 60000);
+      document.getElementById("updated").innerHTML =
+        `Updated ${when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` +
+        (mins > 30 ? `<div class="stale">${mins} min old — data may be stale</div>` : `<div>${mins} min ago</div>`);
+    } catch (e) {
+      main.innerHTML = `<div class="err">Couldn't load parking data yet. If you just set this repo up,
+        run the "Update parking data" workflow once from the Actions tab to generate data/parking.json.</div>`;
+    }
+  }
+  load();
+</script>
+</body>
+</html>

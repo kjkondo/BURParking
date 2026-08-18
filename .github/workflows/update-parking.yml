@@ -1,0 +1,31 @@
+name: Update parking data
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes (GitHub may delay a few min)
+  workflow_dispatch:          # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scrape parking availability
+        run: python scrape.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/parking.json data/speech.txt
+          git diff --cached --quiet && echo "No change" && exit 0
+          git commit -m "Update parking data"
+          git push
