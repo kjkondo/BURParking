@@ -1,1 +1,1 @@
-As of 6:05 PM at Burbank airport: Lot G has the most spaces with 48. Lot C is full. Lot E has 12. Lot F has 16. the structure level 1 has 1. the structure level 2 has 13. the structure level 3 has 15. the structure level 4 has 15.
+As of 7:30 PM at Burbank airport: Lot G has the most spaces with 64. Lot C is full. Lot E has 20. Lot F has 29. the structure level 1 has 1. the structure level 2 has 18. the structure level 3 has 27. the structure level 4 has 19.
