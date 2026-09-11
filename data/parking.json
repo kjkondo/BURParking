@@ -1,14 +1,14 @@
 {
-  "updated": "2026-09-11T01:04:45+00:00",
+  "updated": "2026-09-11T05:58:59+00:00",
   "source": "https://www.hollywoodburbankairport.com/parking/",
   "lots": {
     "Parking Lot C": "FULL",
-    "Parking Lot E": 17,
-    "Parking Lot F": 9,
-    "Parking Lot G": 77,
-    "Structure: Level 1": "FULL",
-    "Structure: Level 2": 10,
-    "Structure: Level 3": 11,
-    "Structure: Level 4": 13
+    "Parking Lot E": 38,
+    "Parking Lot F": 44,
+    "Parking Lot G": 117,
+    "Structure: Level 1": 21,
+    "Structure: Level 2": 37,
+    "Structure: Level 3": 51,
+    "Structure: Level 4": 47
   }
 }
